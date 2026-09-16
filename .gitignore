@@ -4,3 +4,6 @@ __pycache__/
 state.json
 get-pip.py
 .claude/
+build/
+dist/
+*.spec.bak

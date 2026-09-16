@@ -38,4 +38,15 @@ device if it isn't the system default.
   heard for a configurable number of minutes ("Re-alert after" setting).
 
 Preferences and per-species last-heard times are stored in `state.json`
-(gitignored, machine-local).
+(gitignored, machine-local). When running from the packaged .exe, it's kept
+in `%APPDATA%\BirdListener\state.json` instead.
+
+## Building a standalone .exe
+
+```bash
+venv\Scripts\pyinstaller birdlistener.spec --noconfirm
+```
+
+Produces `dist\BirdListener.exe` (~550MB, mostly TensorFlow). It's a
+single-file build with no console window; expect a several-second cold
+start while it unpacks to a temp directory and loads the model.

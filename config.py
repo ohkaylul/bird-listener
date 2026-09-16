@@ -1,9 +1,22 @@
 """Config load/save and per-species alert state, persisted to state.json."""
 import json
+import os
+import sys
 import threading
 from pathlib import Path
 
-STATE_PATH = Path(__file__).parent / "state.json"
+
+def _state_dir():
+    # Under PyInstaller, __file__ lives in a temp extraction dir that's wiped
+    # on exit, so state has to live somewhere stable instead.
+    if getattr(sys, "frozen", False):
+        base = Path(os.environ.get("APPDATA", Path.home())) / "BirdListener"
+        base.mkdir(parents=True, exist_ok=True)
+        return base
+    return Path(__file__).parent
+
+
+STATE_PATH = _state_dir() / "state.json"
 
 _lock = threading.Lock()
 

@@ -8,3 +8,4 @@ tensorflow
 audioread
 pystray
 Pillow
+pyinstaller
