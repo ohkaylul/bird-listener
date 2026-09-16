@@ -29,6 +29,12 @@ jobs:
           echo "--- what installations/token type is this? ---"
           curl -s -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/repos/ohkaylul/birdListenerTeach/git/refs/heads/master
 
+      - name: Test git smart-HTTP read (ls-remote) with the same token
+        env:
+          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
+        run: |
+          git ls-remote "https://x-access-token:${MIRROR_PAT}@github.com/ohkaylul/birdListenerTeach.git" || echo "ls-remote failed too"
+
       - name: Push to birdListenerTeach
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
