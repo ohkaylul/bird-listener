@@ -15,9 +15,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Push to birdListenerTeach
+      - name: Push to birdListenerTeach's upstream branch
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
         run: |
+          # Pushed to "upstream", not "master": birdListenerTeach's own annotate
+          # workflow rewrites "master" from this branch plus generated comments,
+          # so master diverges from bird-listener's history. Mirroring straight
+          # onto master would make this push non-fast-forward and fail once that
+          # happens.
           git remote add teach "https://x-access-token:${MIRROR_PAT}@github.com/ohkaylul/birdListenerTeach.git"
-          git push teach master --tags
+          git push teach HEAD:refs/heads/upstream --force --tags
