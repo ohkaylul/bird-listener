@@ -1,0 +1,22 @@
+name: Mirror to birdListenerTeach
+
+on:
+  push:
+    branches: [master]
+    tags: ["*"]
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to birdListenerTeach
+        env:
+          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
+        run: |
+          git remote add teach "https://x-access-token:${MIRROR_PAT}@github.com/ohkaylul/birdListenerTeach.git"
+          git push teach master --tags
