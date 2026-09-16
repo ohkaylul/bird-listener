@@ -14,6 +14,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Debug token identity and access (temporary)
+        env:
+          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
+        run: |
+          echo "--- token belongs to ---"
+          curl -s -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/user | grep -E '"login"|"message"'
+          echo "--- token scopes (classic PAT only) ---"
+          curl -sI -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/user | grep -i x-oauth-scopes
+          echo "--- can it see birdListenerTeach? ---"
+          curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/repos/ohkaylul/birdListenerTeach
+
       - name: Push to birdListenerTeach
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
