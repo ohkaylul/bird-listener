@@ -1,0 +1,10 @@
+birdnetlib
+sounddevice
+numpy
+plyer
+win10toast
+librosa
+tensorflow
+audioread
+pystray
+Pillow
