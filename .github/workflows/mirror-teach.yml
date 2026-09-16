@@ -26,3 +26,17 @@ jobs:
           # happens.
           git remote add teach "https://x-access-token:${MIRROR_PAT}@github.com/ohkaylul/birdListenerTeach.git"
           git push teach HEAD:refs/heads/upstream --force --tags
+
+      - name: Trigger annotation pass in birdListenerTeach
+        env:
+          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
+        run: |
+          # workflow_dispatch, not a push trigger on birdListenerTeach's side --
+          # see that repo's annotate.yml for why. Requires MIRROR_PAT to have
+          # the "Actions: Read and write" permission in addition to Contents
+          # and Workflows.
+          curl -sf -X POST \
+            -H "Authorization: token ${MIRROR_PAT}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/ohkaylul/birdListenerTeach/actions/workflows/annotate.yml/dispatches \
+            -d '{"ref":"master"}'
