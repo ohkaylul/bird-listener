@@ -7,3 +7,5 @@ get-pip.py
 build/
 dist/
 *.spec.bak
+installer_output/
+install_test/

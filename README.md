@@ -50,3 +50,16 @@ venv\Scripts\pyinstaller birdlistener.spec --noconfirm
 Produces `dist\BirdListener.exe` (~550MB, mostly TensorFlow). It's a
 single-file build with no console window; expect a several-second cold
 start while it unpacks to a temp directory and loads the model.
+
+## Building the Windows installer
+
+Requires [Inno Setup 6](https://jrsoftware.org/isinfo.php) and a prior
+`dist\BirdListener.exe` build (above):
+
+```bash
+iscc installer.iss
+```
+
+Produces `installer_output\BirdListenerSetup.exe` — a standard install
+wizard with Start Menu shortcut, optional desktop shortcut, optional
+"launch at sign-in", and an uninstaller.
