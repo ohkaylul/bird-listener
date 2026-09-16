@@ -13,33 +13,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Debug token identity and access (temporary)
-        env:
-          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
-        run: |
-          echo "--- token belongs to ---"
-          curl -s -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/user | grep -E '"login"|"message"'
-          echo "--- token scopes (classic PAT only) ---"
-          curl -sI -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/user | grep -i x-oauth-scopes
-          echo "--- can it see birdListenerTeach (metadata)? ---"
-          curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/repos/ohkaylul/birdListenerTeach
-          echo "--- can it read birdListenerTeach contents (requires Contents:Read)? ---"
-          curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/repos/ohkaylul/birdListenerTeach/git/refs/heads/master
-          echo "--- what installations/token type is this? ---"
-          curl -s -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/repos/ohkaylul/birdListenerTeach/git/refs/heads/master
-
-      - name: Test git smart-HTTP read (ls-remote) via Authorization header
-        env:
-          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
-        run: |
-          B64=$(printf 'x-access-token:%s' "${MIRROR_PAT}" | base64 -w0)
-          git -c http.extraheader="AUTHORIZATION: basic ${B64}" ls-remote https://github.com/ohkaylul/birdListenerTeach.git || echo "  failed"
+          persist-credentials: false
 
       - name: Push to birdListenerTeach
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
         run: |
-          B64=$(printf 'x-access-token:%s' "${MIRROR_PAT}" | base64 -w0)
-          git remote add teach https://github.com/ohkaylul/birdListenerTeach.git
-          git -c http.extraheader="AUTHORIZATION: basic ${B64}" push teach master --tags
+          git remote add teach "https://x-access-token:${MIRROR_PAT}@github.com/ohkaylul/birdListenerTeach.git"
+          git push teach master --tags
