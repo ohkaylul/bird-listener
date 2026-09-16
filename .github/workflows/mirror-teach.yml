@@ -22,8 +22,12 @@ jobs:
           curl -s -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/user | grep -E '"login"|"message"'
           echo "--- token scopes (classic PAT only) ---"
           curl -sI -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/user | grep -i x-oauth-scopes
-          echo "--- can it see birdListenerTeach? ---"
+          echo "--- can it see birdListenerTeach (metadata)? ---"
           curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/repos/ohkaylul/birdListenerTeach
+          echo "--- can it read birdListenerTeach contents (requires Contents:Read)? ---"
+          curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/repos/ohkaylul/birdListenerTeach/git/refs/heads/master
+          echo "--- what installations/token type is this? ---"
+          curl -s -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/repos/ohkaylul/birdListenerTeach/git/refs/heads/master
 
       - name: Push to birdListenerTeach
         env:
