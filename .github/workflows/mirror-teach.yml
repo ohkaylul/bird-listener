@@ -29,18 +29,17 @@ jobs:
           echo "--- what installations/token type is this? ---"
           curl -s -H "Authorization: token ${MIRROR_PAT}" https://api.github.com/repos/ohkaylul/birdListenerTeach/git/refs/heads/master
 
-      - name: Test git smart-HTTP read (ls-remote) with username-style auth
+      - name: Test git smart-HTTP read (ls-remote) via Authorization header
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
         run: |
-          echo "--- with x-access-token username ---"
-          git ls-remote "https://x-access-token:${MIRROR_PAT}@github.com/ohkaylul/birdListenerTeach.git" || echo "  failed"
-          echo "--- with real username ---"
-          git ls-remote "https://ohkaylul:${MIRROR_PAT}@github.com/ohkaylul/birdListenerTeach.git" || echo "  failed"
+          B64=$(printf 'x-access-token:%s' "${MIRROR_PAT}" | base64 -w0)
+          git -c http.extraheader="AUTHORIZATION: basic ${B64}" ls-remote https://github.com/ohkaylul/birdListenerTeach.git || echo "  failed"
 
       - name: Push to birdListenerTeach
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
         run: |
-          git remote add teach "https://ohkaylul:${MIRROR_PAT}@github.com/ohkaylul/birdListenerTeach.git"
-          git push teach master --tags
+          B64=$(printf 'x-access-token:%s' "${MIRROR_PAT}" | base64 -w0)
+          git remote add teach https://github.com/ohkaylul/birdListenerTeach.git
+          git -c http.extraheader="AUTHORIZATION: basic ${B64}" push teach master --tags
