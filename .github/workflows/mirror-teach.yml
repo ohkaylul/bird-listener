@@ -27,16 +27,21 @@ jobs:
           git remote add teach "https://x-access-token:${MIRROR_PAT}@github.com/ohkaylul/birdListenerTeach.git"
           git push teach HEAD:refs/heads/upstream --force --tags
 
-      - name: Trigger annotation pass in birdListenerTeach
+      - name: Open a notification issue in birdListenerTeach
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
         run: |
-          # workflow_dispatch, not a push trigger on birdListenerTeach's side --
-          # see that repo's annotate.yml for why. Requires MIRROR_PAT to have
-          # the "Actions: Read and write" permission in addition to Contents
-          # and Workflows.
+          # No automated annotation step -- this just flags that upstream has
+          # new code, so a human can ask Claude to do the annotation pass by
+          # hand in a session. Requires MIRROR_PAT to have "Issues: Read and
+          # write" in addition to Contents and Workflows.
+          SHA=$(git rev-parse --short HEAD)
+          MSG=$(git log -1 --pretty=%s)
+          BODY=$(jq -n --arg sha "$SHA" --arg msg "$MSG" \
+            '{title: "New code from bird-listener ready for annotation (\($sha))",
+              body: "bird-listener pushed **\($sha)**: \($msg)\n\nThe upstream branch here now has this code, unmodified. Ask Claude to review it and update the teaching comments on master."}')
           curl -sf -X POST \
             -H "Authorization: token ${MIRROR_PAT}" \
             -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/ohkaylul/birdListenerTeach/actions/workflows/annotate.yml/dispatches \
-            -d '{"ref":"master"}'
+            https://api.github.com/repos/ohkaylul/birdListenerTeach/issues \
+            -d "$BODY"
