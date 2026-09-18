@@ -57,6 +57,7 @@ class App:
             if common_name not in self.known_species:
                 self.known_species.add(common_name)
                 self.gui.register_species(common_name, scientific_name)
+            self.gui.flash_species(common_name)
 
             should_alert = False
             if common_name in muted:
