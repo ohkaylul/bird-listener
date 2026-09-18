@@ -4,6 +4,8 @@ Listens to bird sounds from a microphone, identifies species locally with
 [BirdNET](https://github.com/kahst/BirdNET-Analyzer) (via `birdnetlib`), and
 sends a Windows desktop notification when it hears something worth flagging.
 Species can be muted or set to always-alert by common name from a small GUI.
+Click any species name to view a fact sheet (description, image, link) pulled
+from Wikipedia and cached locally.
 
 ## Setup
 
@@ -39,7 +41,9 @@ device if it isn't the system default.
 
 Preferences and per-species last-heard times are stored in `state.json`
 (gitignored, machine-local). When running from the packaged .exe, it's kept
-in `%APPDATA%\BirdListener\state.json` instead.
+in `%APPDATA%\BirdListener\state.json` instead. Fetched species fact sheets
+are cached alongside it in `species_cache.json`, so once a species has been
+looked up its details are available offline.
 
 ## Building a standalone .exe
 
