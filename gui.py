@@ -1,9 +1,14 @@
 """Tkinter GUI: species list with Mute / Always Alert toggles, search, status."""
+import io
 import threading
 import tkinter as tk
+import webbrowser
 from tkinter import ttk
 
+from PIL import Image, ImageTk
+
 import config
+import species_info
 
 
 class BirdApp:
@@ -14,6 +19,7 @@ class BirdApp:
 
         self.species_rows = {}  # common_name -> row widgets
         self.species_order = []  # keeps insertion order, newest first
+        self.species_sci = {}  # common_name -> scientific_name
 
         root.title("Bird Listener")
         root.geometry("560x640")
@@ -125,12 +131,14 @@ class BirdApp:
 
     # ---------- species list ----------
 
-    def register_species(self, common_name):
+    def register_species(self, common_name, scientific_name=None):
         """Called when a species is heard for the first time in this session (thread-safe)."""
-        self.root.after(0, lambda: self._register_species_ui(common_name))
+        self.root.after(0, lambda: self._register_species_ui(common_name, scientific_name))
 
-    def _register_species_ui(self, common_name):
+    def _register_species_ui(self, common_name, scientific_name):
         self.state = config.load_state()
+        if scientific_name:
+            self.species_sci[common_name] = scientific_name
         if common_name not in self.species_rows:
             self.species_order.insert(0, common_name)
             self._refresh_species_list()
@@ -152,7 +160,9 @@ class BirdApp:
                 continue
             row = ttk.Frame(self.list_inner)
             row.grid(row=row_idx, column=0, sticky="ew", pady=1)
-            ttk.Label(row, text=name, width=30).grid(row=0, column=0, sticky="w")
+            name_label = ttk.Label(row, text=name, width=30, foreground="#1a5fb4", cursor="hand2")
+            name_label.grid(row=0, column=0, sticky="w")
+            name_label.bind("<Button-1>", lambda e, n=name: self._open_species_detail(n))
 
             mute_var = tk.BooleanVar(value=name in muted)
             always_var = tk.BooleanVar(value=name in always)
@@ -184,6 +194,68 @@ class BirdApp:
             current.discard(common_name)
         self.state[key] = sorted(current)
         config.save_state(self.state)
+
+    # ---------- species detail popup ----------
+
+    def _open_species_detail(self, common_name):
+        scientific_name = self.species_sci.get(common_name)
+
+        win = tk.Toplevel(self.root)
+        win.title(common_name)
+        win.geometry("420x480")
+        win.resizable(False, False)
+
+        header = ttk.Label(win, text=common_name, font=("", 14, "bold"))
+        header.pack(pady=(12, 0), padx=12, anchor="w")
+        if scientific_name:
+            ttk.Label(win, text=scientific_name, font=("", 10, "italic")).pack(padx=12, anchor="w")
+
+        image_label = ttk.Label(win)
+        image_label.pack(pady=8)
+
+        text = tk.Text(win, wrap="word", height=12, borderwidth=0, background=win.cget("background"))
+        text.pack(fill="both", expand=True, padx=12, pady=(0, 8))
+        text.insert("1.0", "Loading..." if scientific_name else "No scientific name known for this detection.")
+        text.config(state="disabled")
+
+        link_var = tk.StringVar(value="")
+        link_label = ttk.Label(win, textvariable=link_var, foreground="#1a5fb4", cursor="hand2")
+        link_label.pack(pady=(0, 12))
+
+        if not scientific_name:
+            return
+
+        def fetch():
+            try:
+                info = species_info.get_species_info(scientific_name, common_name)
+                win.after(0, lambda: populate(info, None))
+            except Exception as e:
+                win.after(0, lambda: populate(None, e))
+
+        def populate(info, error):
+            if not win.winfo_exists():
+                return
+            text.config(state="normal")
+            text.delete("1.0", "end")
+            if error:
+                text.insert("1.0", f"Couldn't load details ({error}).")
+            else:
+                text.insert("1.0", info["extract"])
+                if info["image_bytes"]:
+                    try:
+                        img = Image.open(io.BytesIO(info["image_bytes"]))
+                        img.thumbnail((300, 220))
+                        photo = ImageTk.PhotoImage(img)
+                        image_label.configure(image=photo)
+                        image_label.image = photo  # keep a reference
+                    except Exception:
+                        pass
+                if info["page_url"]:
+                    link_var.set("View full article on Wikipedia")
+                    link_label.bind("<Button-1>", lambda e, url=info["page_url"]: webbrowser.open(url))
+            text.config(state="disabled")
+
+        threading.Thread(target=fetch, daemon=True).start()
 
     # ---------- window close behavior ----------
 
