@@ -1,9 +1,14 @@
-"""Fetches species facts (description, image, range map) from Wikipedia, cached to disk."""
+"""Fetches species facts (description, image, range map) from Wikipedia, with
+range maps falling back to GBIF occurrence data when Wikipedia doesn't have a
+usable one. Results are cached to disk."""
+import io
 import json
 import re
 import threading
 import urllib.parse
 import urllib.request
+
+from PIL import Image
 
 import config
 
@@ -88,6 +93,41 @@ def _fetch_range_map_bytes(filename):
     return None
 
 
+def _is_rasterizable(image_bytes):
+    """Wikipedia range maps are frequently SVGs, which Pillow can't open --
+    those aren't worth caching as a "map" since the GUI can't display them."""
+    try:
+        Image.open(io.BytesIO(image_bytes)).verify()
+        return True
+    except Exception:
+        return False
+
+
+def _fetch_gbif_range_map(scientific_name):
+    """Renders a world basemap with an occurrence-density overlay for the
+    species from GBIF -- a heatmap of real sighting records rather than a
+    curated range polygon, but it's a free, keyless, always-raster source."""
+    match = _fetch_json(
+        f"https://api.gbif.org/v1/species/match?name={urllib.parse.quote(scientific_name)}"
+    )
+    taxon_key = match.get("usageKey")
+    if not taxon_key:
+        return None
+
+    basemap_bytes = _fetch_image_bytes("https://tile.gbif.org/4326/omt/0/0/0@1x.png?style=gbif-natural")
+    overlay_bytes = _fetch_image_bytes(
+        f"https://api.gbif.org/v2/map/occurrence/density/0/0/0@1x.png?taxonKey={taxon_key}&srs=EPSG:4326"
+    )
+
+    basemap = Image.open(io.BytesIO(basemap_bytes)).convert("RGBA")
+    overlay = Image.open(io.BytesIO(overlay_bytes)).convert("RGBA")
+    combined = Image.alpha_composite(basemap, overlay)
+
+    buf = io.BytesIO()
+    combined.save(buf, format="PNG")
+    return buf.getvalue()
+
+
 def get_species_info(scientific_name, common_name):
     """Returns a dict {title, extract, page_url, image_bytes, map_bytes} for a
     species, fetching from Wikipedia on first lookup and caching the result
@@ -125,9 +165,17 @@ def get_species_info(scientific_name, common_name):
     try:
         map_filename = _find_range_map_filename(title, scientific_name)
         if map_filename:
-            map_bytes = _fetch_range_map_bytes(map_filename)
+            candidate = _fetch_range_map_bytes(map_filename)
+            if candidate and _is_rasterizable(candidate):
+                map_bytes = candidate
     except Exception:
         map_bytes = None
+
+    if map_bytes is None:
+        try:
+            map_bytes = _fetch_gbif_range_map(scientific_name)
+        except Exception:
+            map_bytes = None
 
     cache[scientific_name] = {
         "title": title,
