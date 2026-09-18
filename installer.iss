@@ -2,7 +2,7 @@
 ; Build with: ISCC.exe installer.iss  (requires dist\BirdListener.exe to exist first)
 
 #define MyAppName "Bird Listener"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppExeName "BirdListener.exe"
 
 [Setup]
